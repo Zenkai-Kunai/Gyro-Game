@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gyro FPS Game</title>
+    <title>Gyro FPS Game - Inverted</title>
     <style>
         body {
             margin: 0;
@@ -23,7 +23,6 @@
             overflow: hidden;
         }
 
-        /* HUD overlay */
         .hud {
             position: absolute;
             top: 20px;
@@ -37,7 +36,6 @@
             z-index: 10;
         }
 
-        /* Crosshair */
         #crosshair {
             position: absolute;
             top: 50%;
@@ -64,7 +62,6 @@
             border-radius: 50%;
         }
 
-        /* Game world wrapper that rotates based on gyro */
         #world {
             position: absolute;
             width: 300vw;
@@ -75,7 +72,6 @@
             will-change: transform;
         }
 
-        /* Targets */
         .target {
             position: absolute;
             width: 60px;
@@ -98,7 +94,6 @@
             border-radius: 50%;
         }
 
-        /* Shoot Button */
         #shoot-btn {
             position: absolute;
             bottom: 30px;
@@ -124,7 +119,6 @@
             background-color: #dc2626;
         }
 
-        /* Start Screen Modal */
         #modal {
             position: absolute;
             top: 0;
@@ -170,7 +164,7 @@
 
     <div id="modal">
         <h1>GYRO SHOOTER</h1>
-        <p>Hold your phone steady, tap start, and tilt your device to aim at targets. Press the SHOOT button to fire!</p>
+        <p>Inverted controls enabled! Tilt your phone to aim naturally, then press SHOOT.</p>
         <button id="start-btn">Start Game</button>
     </div>
 
@@ -182,9 +176,7 @@
 
         <div id="crosshair"></div>
 
-        <div id="world">
-            <!-- Dynamic targets will spawn here -->
-        </div>
+        <div id="world"></div>
 
         <div id="shoot-btn">SHOOT</div>
     </div>
@@ -202,7 +194,6 @@
         let gameActive = false;
         let timerInterval;
 
-        // Gyro tracking variables
         let baseGamma = null;
         let baseBeta = null;
         let currentGamma = 0;
@@ -214,12 +205,12 @@
             if (baseGamma === null && event.gamma !== null) baseGamma = event.gamma;
             if (baseBeta === null && event.beta !== null) baseBeta = event.beta;
 
-            // Calculate relative offset from starting position
-            currentGamma = (event.gamma - baseGamma) * 15; // Sensitivity multiplier X
-            currentBeta = (event.beta - baseBeta) * 15;   // Sensitivity multiplier Y
+            // Inverted the multipliers by removing the minus signs (or swapping direction)
+            currentGamma = (event.gamma - baseGamma) * 15; 
+            currentBeta = (event.beta - baseBeta) * 15;   
 
-            // Move the world container opposite to device tilt to simulate looking around
-            world.style.transform = `translate(${-currentGamma}px, ${currentBeta}px)`;
+            // Applied opposite mapping (+ instead of -)
+            world.style.transform = `translate(${currentGamma}px, ${-currentBeta}px)`;
         }
 
         async function startGame() {
@@ -248,7 +239,6 @@
             window.addEventListener('deviceorientation', handleOrientation);
             spawnTarget();
 
-            // Start Countdown Timer
             timerInterval = setInterval(() => {
                 timeLeft--;
                 timerEl.textContent = timeLeft;
@@ -261,14 +251,12 @@
         function spawnTarget() {
             if (!gameActive) return;
 
-            // Remove existing target if any
             const existing = world.querySelector('.target');
             if (existing) existing.remove();
 
             const target = document.createElement('div');
             target.classList.add('target');
 
-            // Random position inside the world bounds
             const randomX = Math.random() * (window.innerWidth * 1.5) + (window.innerWidth * 0.75);
             const randomY = Math.random() * (window.innerHeight * 1.5) + (window.innerHeight * 0.75);
 
@@ -284,7 +272,6 @@
             const target = world.querySelector('.target');
             if (!target) return;
 
-            // Check if crosshair (center of screen) intersects with the target bounds
             const targetRect = target.getBoundingClientRect();
             const centerX = window.innerWidth / 2;
             const centerY = window.innerHeight / 2;
@@ -298,7 +285,7 @@
                 score += 10;
                 scoreEl.textContent = score;
                 target.remove();
-                spawnTarget(); // Spawn next target immediately
+                spawnTarget();
             }
         }
 
