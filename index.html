@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gyroscope Web App</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --accent-color: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.3);
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        p.subtitle {
+            color: #94a3b8;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 350px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #334155;
+            font-size: 1rem;
+        }
+
+        .data-row:last-child {
+            border-bottom: none;
+        }
+
+        .value {
+            font-family: monospace;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: #0f172a;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 350px;
+            transition: opacity 0.2s;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        button:active {
+            opacity: 0.8;
+        }
+
+        .visualizer-container {
+            width: 100%;
+            max-width: 350px;
+            height: 200px;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            perspective: 600px;
+            overflow: hidden;
+        }
+
+        .tilt-box {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #38bdf8, #0369a1);
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            transform-style: preserve-3d;
+            transition: transform 0.05s ease-out;
+        }
+
+        #status {
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: #f59e0b;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Gyroscope Viewer</h1>
+    <p class="subtitle">Move your mobile device to test orientation</p>
+
+    <div id="permission-container" style="width: 100%; max-width: 350px; margin-bottom: 20px;">
+        <button id="perm-btn">Enable Gyroscope</button>
+    </div>
+
+    <div class="card">
+        <div class="data-row">
+            <span>Alpha (Z-axis):</span>
+            <span id="alpha" class="value">0.00°</span>
+        </div>
+        <div class="data-row">
+            <span>Beta (X-axis):</span>
+            <span id="beta" class="value">0.00°</span>
+        </div>
+        <div class="data-row">
+            <span>Gamma (Y-axis):</span>
+            <span id="gamma" class="value">0.00°</span>
+        </div>
+    </div>
+
+    <div class="visualizer-container">
+        <div class="tilt-box" id="tiltBox"></div>
+    </div>
+
+    <div id="status">Status: Waiting for permission...</div>
+
+    <script>
+        const alphaEl = document.getElementById('alpha');
+        const betaEl = document.getElementById('beta');
+        const gammaEl = document.getElementById('gamma');
+        const tiltBox = document.getElementById('tiltBox');
+        const statusEl = document.getElementById('status');
+        const permBtn = document.getElementById('perm-btn');
+        const permContainer = document.getElementById('permission-container');
+
+        function handleOrientation(event) {
+            const alpha = event.alpha ? event.alpha.toFixed(2) : 0;
+            const beta = event.beta ? event.beta.toFixed(2) : 0;
+            const gamma = event.gamma ? event.gamma.toFixed(2) : 0;
+
+            // Update text values
+            alphaEl.textContent = `${alpha}°`;
+            betaEl.textContent = `${beta}°`;
+            gammaEl.textContent = `${gamma}°`;
+
+            // Update 3D box rotation based on device tilt
+            // Beta ranges from -180 to 180 (front-to-back tilt)
+            // Gamma ranges from -90 to 90 (left-to-right tilt)
+            tiltBox.style.transform = `rotateX(${beta}deg) rotateY(${gamma}deg) rotateZ(${alpha}deg)`;
+        }
+
+        async function initGyro() {
+            // Check if DeviceOrientationEvent requires permission (iOS 13+ devices)
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const response = await DeviceOrientationEvent.requestPermission();
+                    if (response === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation);
+                        statusEl.textContent = "Status: Gyroscope active!";
+                        statusEl.style.color = "#10b981";
+                        permContainer.style.display = 'none';
+                    } else {
+                        statusEl.textContent = "Status: Permission denied!";
+                    }
+                } catch (error) {
+                    statusEl.textContent = `Error: ${error.message}`;
+                }
+            } else {
+                // Non-iOS or older browsers that don't explicitly require permission API
+                if ('ondeviceorientation' in window) {
+                    window.addEventListener('deviceorientation', handleOrientation);
+                    statusEl.textContent = "Status: Gyroscope active!";
+                    statusEl.style.color = "#10b981";
+                    permContainer.style.display = 'none';
+                } else {
+                    statusEl.textContent = "Status: Device orientation not supported.";
+                }
+            }
+        }
+
+        permBtn.addEventListener('click', initGyro);
+    </script>
+</body>
+</html>
