@@ -2,207 +2,319 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gyroscope Web App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gyro FPS Game</title>
     <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-color: #f8fafc;
-            --accent-color: #38bdf8;
-            --accent-glow: rgba(56, 189, 248, 0.3);
-        }
-
         body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
             margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            box-sizing: border-box;
+            padding: 0;
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            touch-action: none;
         }
 
-        h1 {
-            margin-bottom: 5px;
-            font-size: 1.5rem;
-            text-align: center;
-        }
-
-        p.subtitle {
-            color: #94a3b8;
-            margin-top: 0;
-            margin-bottom: 20px;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 20px;
-            width: 100%;
-            max-width: 350px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-            margin-bottom: 20px;
-        }
-
-        .data-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #334155;
-            font-size: 1rem;
-        }
-
-        .data-row:last-child {
-            border-bottom: none;
-        }
-
-        .value {
-            font-family: monospace;
-            color: var(--accent-color);
-            font-weight: bold;
-        }
-
-        button {
-            background-color: var(--accent-color);
-            color: #0f172a;
-            border: none;
-            padding: 12px 20px;
-            font-size: 1rem;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            max-width: 350px;
-            transition: opacity 0.2s;
-            box-shadow: 0 4px 12px var(--accent-glow);
-        }
-
-        button:active {
-            opacity: 0.8;
-        }
-
-        .visualizer-container {
-            width: 100%;
-            max-width: 350px;
-            height: 200px;
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            perspective: 600px;
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(to bottom, #1e293b, #0f172a);
             overflow: hidden;
         }
 
-        .tilt-box {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #38bdf8, #0369a1);
-            border-radius: 12px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
-            transform-style: preserve-3d;
-            transition: transform 0.05s ease-out;
+        /* HUD overlay */
+        .hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.2rem;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 10;
         }
 
-        #status {
-            margin-top: 15px;
-            font-size: 0.85rem;
-            color: #f59e0b;
+        /* Crosshair */
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin-left: -10px;
+            margin-top: -10px;
+            border: 2px solid rgba(56, 189, 248, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+        }
+
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 4px;
+            height: 4px;
+            background-color: #38bdf8;
+            border-radius: 50%;
+        }
+
+        /* Game world wrapper that rotates based on gyro */
+        #world {
+            position: absolute;
+            width: 300vw;
+            height: 300vh;
+            top: -100vh;
+            left: -100vw;
+            transform-origin: center center;
+            will-change: transform;
+        }
+
+        /* Targets */
+        .target {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #ef4444 40%, #b91c1c 100%);
+            border-radius: 50%;
+            border: 3px solid #f8fafc;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.7);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .target::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background-color: #f8fafc;
+            border-radius: 50%;
+        }
+
+        /* Shoot Button */
+        #shoot-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 90px;
+            height: 90px;
+            background-color: #ef4444;
+            border: 4px solid #f8fafc;
+            border-radius: 50%;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.5);
+            z-index: 10;
+            user-select: none;
+        }
+
+        #shoot-btn:active {
+            transform: scale(0.92);
+            background-color: #dc2626;
+        }
+
+        /* Start Screen Modal */
+        #modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(15, 23, 42, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+            box-sizing: border-box;
             text-align: center;
+        }
+
+        #modal h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #38bdf8;
+        }
+
+        #modal p {
+            color: #94a3b8;
+            max-width: 300px;
+            margin-bottom: 30px;
+        }
+
+        #start-btn {
+            background-color: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
         }
     </style>
 </head>
 <body>
 
-    <h1>Gyroscope Viewer</h1>
-    <p class="subtitle">Move your mobile device to test orientation</p>
-
-    <div id="permission-container" style="width: 100%; max-width: 350px; margin-bottom: 20px;">
-        <button id="perm-btn">Enable Gyroscope</button>
+    <div id="modal">
+        <h1>GYRO SHOOTER</h1>
+        <p>Hold your phone steady, tap start, and tilt your device to aim at targets. Press the SHOOT button to fire!</p>
+        <button id="start-btn">Start Game</button>
     </div>
 
-    <div class="card">
-        <div class="data-row">
-            <span>Alpha (Z-axis):</span>
-            <span id="alpha" class="value">0.00°</span>
+    <div id="game-container">
+        <div class="hud">
+            <div>Score: <span id="score">0</span></div>
+            <div>Time: <span id="timer">30</span>s</div>
         </div>
-        <div class="data-row">
-            <span>Beta (X-axis):</span>
-            <span id="beta" class="value">0.00°</span>
-        </div>
-        <div class="data-row">
-            <span>Gamma (Y-axis):</span>
-            <span id="gamma" class="value">0.00°</span>
-        </div>
-    </div>
 
-    <div class="visualizer-container">
-        <div class="tilt-box" id="tiltBox"></div>
-    </div>
+        <div id="crosshair"></div>
 
-    <div id="status">Status: Waiting for permission...</div>
+        <div id="world">
+            <!-- Dynamic targets will spawn here -->
+        </div>
+
+        <div id="shoot-btn">SHOOT</div>
+    </div>
 
     <script>
-        const alphaEl = document.getElementById('alpha');
-        const betaEl = document.getElementById('beta');
-        const gammaEl = document.getElementById('gamma');
-        const tiltBox = document.getElementById('tiltBox');
-        const statusEl = document.getElementById('status');
-        const permBtn = document.getElementById('perm-btn');
-        const permContainer = document.getElementById('permission-container');
+        const world = document.getElementById('world');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const shootBtn = document.getElementById('shoot-btn');
+        const modal = document.getElementById('modal');
+        const startBtn = document.getElementById('start-btn');
+
+        let score = 0;
+        let timeLeft = 30;
+        let gameActive = false;
+        let timerInterval;
+
+        // Gyro tracking variables
+        let baseGamma = null;
+        let baseBeta = null;
+        let currentGamma = 0;
+        let currentBeta = 0;
 
         function handleOrientation(event) {
-            const alpha = event.alpha ? event.alpha.toFixed(2) : 0;
-            const beta = event.beta ? event.beta.toFixed(2) : 0;
-            const gamma = event.gamma ? event.gamma.toFixed(2) : 0;
+            if (!gameActive) return;
 
-            // Update text values
-            alphaEl.textContent = `${alpha}°`;
-            betaEl.textContent = `${beta}°`;
-            gammaEl.textContent = `${gamma}°`;
+            if (baseGamma === null && event.gamma !== null) baseGamma = event.gamma;
+            if (baseBeta === null && event.beta !== null) baseBeta = event.beta;
 
-            // Update 3D box rotation based on device tilt
-            // Beta ranges from -180 to 180 (front-to-back tilt)
-            // Gamma ranges from -90 to 90 (left-to-right tilt)
-            tiltBox.style.transform = `rotateX(${beta}deg) rotateY(${gamma}deg) rotateZ(${alpha}deg)`;
+            // Calculate relative offset from starting position
+            currentGamma = (event.gamma - baseGamma) * 15; // Sensitivity multiplier X
+            currentBeta = (event.beta - baseBeta) * 15;   // Sensitivity multiplier Y
+
+            // Move the world container opposite to device tilt to simulate looking around
+            world.style.transform = `translate(${-currentGamma}px, ${currentBeta}px)`;
         }
 
-        async function initGyro() {
-            // Check if DeviceOrientationEvent requires permission (iOS 13+ devices)
+        async function startGame() {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 try {
                     const response = await DeviceOrientationEvent.requestPermission();
-                    if (response === 'granted') {
-                        window.addEventListener('deviceorientation', handleOrientation);
-                        statusEl.textContent = "Status: Gyroscope active!";
-                        statusEl.style.color = "#10b981";
-                        permContainer.style.display = 'none';
-                    } else {
-                        statusEl.textContent = "Status: Permission denied!";
+                    if (response !== 'granted') {
+                        alert("Gyroscope permission is required to play!");
+                        return;
                     }
-                } catch (error) {
-                    statusEl.textContent = `Error: ${error.message}`;
+                } catch (e) {
+                    console.error(e);
                 }
-            } else {
-                // Non-iOS or older browsers that don't explicitly require permission API
-                if ('ondeviceorientation' in window) {
-                    window.addEventListener('deviceorientation', handleOrientation);
-                    statusEl.textContent = "Status: Gyroscope active!";
-                    statusEl.style.color = "#10b981";
-                    permContainer.style.display = 'none';
-                } else {
-                    statusEl.textContent = "Status: Device orientation not supported.";
+            }
+
+            modal.style.display = 'none';
+            gameActive = true;
+            score = 0;
+            timeLeft = 30;
+            scoreEl.textContent = score;
+            timerEl.textContent = timeLeft;
+
+            baseGamma = null;
+            baseBeta = null;
+
+            window.addEventListener('deviceorientation', handleOrientation);
+            spawnTarget();
+
+            // Start Countdown Timer
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    endGame();
                 }
+            }, 1000);
+        }
+
+        function spawnTarget() {
+            if (!gameActive) return;
+
+            // Remove existing target if any
+            const existing = world.querySelector('.target');
+            if (existing) existing.remove();
+
+            const target = document.createElement('div');
+            target.classList.add('target');
+
+            // Random position inside the world bounds
+            const randomX = Math.random() * (window.innerWidth * 1.5) + (window.innerWidth * 0.75);
+            const randomY = Math.random() * (window.innerHeight * 1.5) + (window.innerHeight * 0.75);
+
+            target.style.left = `${randomX}px`;
+            target.style.top = `${randomY}px`;
+
+            world.appendChild(target);
+        }
+
+        function shoot() {
+            if (!gameActive) return;
+
+            const target = world.querySelector('.target');
+            if (!target) return;
+
+            // Check if crosshair (center of screen) intersects with the target bounds
+            const targetRect = target.getBoundingClientRect();
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+
+            if (
+                centerX >= targetRect.left &&
+                centerX <= targetRect.right &&
+                centerY >= targetRect.top &&
+                centerY <= targetRect.bottom
+            ) {
+                score += 10;
+                scoreEl.textContent = score;
+                target.remove();
+                spawnTarget(); // Spawn next target immediately
             }
         }
 
-        permBtn.addEventListener('click', initGyro);
+        startBtn.addEventListener('click', startGame);
+        shootBtn.addEventListener('click', shoot);
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            window.removeEventListener('deviceorientation', handleOrientation);
+            
+            modal.style.display = 'flex';
+            modal.querySelector('h1').textContent = "GAME OVER";
+            modal.querySelector('p').textContent = `You scored ${score} points! Tap below to play again.`;
+            startBtn.textContent = "Play Again";
+        }
     </script>
 </body>
 </html>
