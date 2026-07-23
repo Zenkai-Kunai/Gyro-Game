@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2-Axis Gyro FPS Game - Inverted</title>
+    <title>2-Axis Gyro FPS Game</title>
     <style>
         body {
             margin: 0;
@@ -164,7 +164,7 @@
 
     <div id="modal">
         <h1>2-AXIS SHOOTER</h1>
-        <p>Fully inverted controls! Tilt to aim naturally in all directions.</p>
+        <p>Twisting rotation is disabled! Only tilting left/right and up/down will control your aim.</p>
         <button id="start-btn">Start Game</button>
     </div>
 
@@ -205,11 +205,13 @@
             if (baseGamma === null && event.gamma !== null) baseGamma = event.gamma;
             if (baseBeta === null && event.beta !== null) baseBeta = event.beta;
 
-            // Inverted for both axes (Gamma and Beta)
+            // Only using 2 axes: Gamma (Left/Right) and Beta (Up/Down)
+            // Alpha (Z-axis twisting) is completely ignored.
             currentGamma = (event.gamma - baseGamma) * 15; 
             currentBeta = (event.beta - baseBeta) * -15;   
 
-            world.style.transform = `translate(${currentGamma}px, ${currentBeta}px)`;
+            // Apply translation only (no rotation matrix/twist effects)
+            world.style.transform = `translate(${currentGamma}px, ${-currentBeta}px)`;
         }
 
         async function startGame() {
